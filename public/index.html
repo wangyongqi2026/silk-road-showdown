@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>丝路对决 · Silk Road Showdown</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#050508;font-family:'Segoe UI','Microsoft YaHei',sans-serif;color:#eee;overflow:hidden}
+  #wrap{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
+  canvas{width:960px;height:540px;max-width:100%;max-height:100%;background:#0a0a12;display:block;box-shadow:0 0 100px rgba(150,20,20,.4);border-radius:4px;image-rendering:auto;}
+  .overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(5,5,8,.97);z-index:10;padding:20px;overflow-y:auto}
+  .overlay.hidden{display:none}
+  h1{font-size:clamp(26px,5vw,48px);letter-spacing:10px;background:linear-gradient(90deg,#ff4b4b,#f39c12,#2ecc71,#3498db);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;text-align:center;font-weight:900}
+  .sub{color:#666;letter-spacing:6px;margin-bottom:30px;font-size:12px;text-transform:uppercase;text-align:center}
+  input{background:rgba(255,255,255,.03);border:1px solid #222;color:#fff;padding:12px 16px;font-size:16px;text-align:center;border-radius:4px;outline:none;width:280px;font-family:inherit;margin:6px;transition:all .3s}
+  input:focus{border-color:#ff4b4b;box-shadow:0 0 20px rgba(255,75,75,.3);background:rgba(255,255,255,.06)}
+  button{background:linear-gradient(135deg,#ff4b4b,#c0392b);border:none;color:#fff;padding:14px 40px;font-size:14px;letter-spacing:4px;text-transform:uppercase;cursor:pointer;border-radius:4px;font-family:inherit;font-weight:700;transition:all .2s;box-shadow:0 4px 20px rgba(255,75,75,.4);margin:6px}
+  button:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(255,75,75,.7)}
+  button.alt{background:linear-gradient(135deg,#3498db,#2980b9);box-shadow:0 4px 20px rgba(52,152,219,.4)}
+  button.alt:hover{box-shadow:0 8px 30px rgba(52,152,219,.7)}
+  .code{font-size:52px;letter-spacing:14px;color:#f39c12;font-weight:900;margin:20px 0;text-shadow:0 0 30px rgba(243,156,18,.8);font-family:'Courier New',monospace}
+  .msg{color:#777;margin:10px 0;text-align:center;font-size:14px;line-height:1.6;max-width:520px}
+  .controls{display:flex;gap:40px;margin:20px 0;font-size:13px;color:#888;flex-wrap:wrap;justify-content:center;background:rgba(255,255,255,.02);padding:16px 30px;border-radius:8px;border:1px solid #1a1a1a}
+  .controls div{line-height:2}
+  .controls .title{color:#ff4b4b;letter-spacing:3px;margin-bottom:6px;font-size:12px;text-transform:uppercase;font-weight:700}
+  kbd{background:rgba(255,255,255,.1);border:1px solid #333;border-bottom-width:3px;border-radius:4px;padding:4px 10px;font-family:monospace;font-size:12px;color:#eee;margin:0 2px;box-shadow:0 2px 0 #111}
+  .error{color:#ff4b4b;margin:8px;font-size:13px}
+  .result-title{font-size:clamp(36px,7vw,64px);letter-spacing:12px;margin-bottom:10px;font-weight:900;text-shadow:0 0 40px currentColor;text-align:center}
+  .result-name{font-size:22px;letter-spacing:6px;margin-bottom:24px;color:#ddd;text-align:center}
+  .avatar-row{display:flex;gap:40px;justify-content:center;margin:14px 0;flex-wrap:wrap}
+  .avatar-slot{display:flex;flex-direction:column;align-items:center}
+  .avatar-slot label{font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;font-weight:600}
+  .avatar-slot.p1 label{color:#ff4b4b}
+  .avatar-slot.p2 label{color:#2ecc71}
+  .avatar-preview{width:100px;height:100px;border-radius:50%;background:#111;border:2px dashed #333;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;transition:all .3s}
+  .avatar-slot.p1 .avatar-preview:hover,.avatar-slot.p1 .avatar-preview.has-photo{border-color:#ff4b4b;box-shadow:0 0 20px rgba(255,75,75,.4)}
+  .avatar-slot.p2 .avatar-preview:hover,.avatar-slot.p2 .avatar-preview.has-photo{border-color:#2ecc71;box-shadow:0 0 20px rgba(46,204,113,.4)}
+  .avatar-preview img{width:100%;height:100%;object-fit:cover;display:block}
+  .avatar-preview span{font-size:32px;color:#444}
+  .avatar-preview input{display:none}
+  .avatar-hint{font-size:10px;color:#555;margin-top:8px;letter-spacing:1px}
+  .demand-box{background:rgba(243,156,18,.05);border:1px solid rgba(243,156,18,.3);border-radius:8px;padding:20px 26px;margin:16px 0;max-width:500px;text-align:center;box-shadow:0 0 40px rgba(243,156,18,.1)}
+  .demand-label{font-size:11px;letter-spacing:4px;color:#f39c12;text-transform:uppercase;margin-bottom:12px;font-weight:700}
+  .demand-text{font-size:18px;color:#fff;line-height:1.6;font-weight:500}
+  .demand-from{font-size:11px;color:#666;margin-top:12px;letter-spacing:2px}
+  .history-box,.demand-history-box,.leaderboard-box{background:rgba(0,0,0,.5);border:1px solid #1a1a1a;border-radius:8px;padding:16px 20px;margin:12px 0;max-width:540px;width:100%;max-height:180px;overflow-y:auto}
+  .history-title{font-size:11px;letter-spacing:4px;color:#f39c12;text-transform:uppercase;margin-bottom:14px;font-weight:700;text-align:center}
+  .history-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px}
+  .history-row:last-child{border-bottom:none}
+  .history-round{color:#666;font-family:'Courier New',monospace;font-weight:700;min-width:60px}
+  .history-winner{flex:1;padding:0 12px;font-weight:600}
+  .history-winner.p0{color:#ff4b4b}
+  .history-winner.p1{color:#2ecc71}
+  .history-winner.draw{color:#888}
+  .history-detail{color:#555;font-size:11px;font-family:'Courier New',monospace;text-align:right}
+  .score-line{display:flex;gap:30px;justify-content:center;align-items:center;font-size:32px;font-weight:900;font-family:'Courier New',monospace;margin:10px 0 20px;letter-spacing:4px;text-shadow:0 0 20px currentColor}
+  .score-line .s0{color:#ff4b4b}
+  .score-line .s1{color:#2ecc71}
+  .score-line .colon{color:#333}
+  .demand-history-item{padding:10px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px}
+  .demand-history-item:last-child{border-bottom:none}
+  .dh-head{color:#666;font-size:10px;font-family:'Courier New',monospace;letter-spacing:1px;margin-bottom:6px;display:flex;justify-content:space-between}
+  .dh-text{color:#f5d76e;line-height:1.5;font-size:13px}
+  .dh-empty,.lb-empty{color:#555;font-size:12px;text-align:center;padding:12px}
+  .leaderboard-title{font-size:11px;letter-spacing:4px;color:#3498db;text-transform:uppercase;margin-bottom:14px;font-weight:700;text-align:center}
+  .lb-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px}
+  .lb-row:last-child{border-bottom:none}
+  .lb-rank{color:#666;font-family:'Courier New',monospace;font-weight:700;min-width:32px}
+  .lb-rank.gold{color:#f39c12}
+  .lb-rank.silver{color:#bdc3c7}
+  .lb-rank.bronze{color:#cd7f32}
+  .lb-name{flex:1;padding:0 10px;color:#ddd}
+  .lb-name .win{color:#2ecc71;font-weight:700}
+  .lb-score{color:#666;font-family:'Courier New',monospace;font-size:11px}
+  .sound-toggle{position:fixed;top:16px;right:16px;background:rgba(0,0,0,.6);border:1px solid #222;color:#888;width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;z-index:20;transition:all .3s}
+  .sound-toggle:hover{border-color:#f39c12;color:#f39c12;box-shadow:0 0 20px rgba(243,156,18,.4)}
+  .sound-toggle.off{color:#444}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="1920" height="1080"></canvas></div>
+<button class="sound-toggle" id="soundBtn" title="Sound">🔊</button>
+
+<!-- 菜单 -->
+<div class="overlay" id="menu">
+  <h1 id="lbl-title">丝路对决</h1>
+  <div class="sub" id="lbl-sub">WangYongQi vs hana · 三局两胜 · 异地联机</div>
+  <input id="nameInput" maxlength="12" placeholder="你的名字">
+  <div class="avatar-row">
+    <div class="avatar-slot p1">
+      <label id="lbl-my-photo">你的照片</label>
+      <div class="avatar-preview" id="myAvatarPreview" onclick="document.getElementById('myPhotoInput').click()">
+        <span>＋</span><input type="file" id="myPhotoInput" accept="image/*">
+      </div>
+      <div class="avatar-hint" id="lbl-upload-hint">点击上传 · 自动裁剪</div>
+    </div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;justify-content:center;margin-top:6px">
+    <button id="createBtn" id="lbl-create">创建房间</button>
+    <button class="alt" id="joinBtn" id="lbl-join">加入房间</button>
+  </div>
+  <input id="codeInput" maxlength="4" placeholder="输入 4 位房间码" style="text-transform:uppercase">
+  <div class="error" id="errMsg"></div>
+  <div class="controls">
+    <div>
+      <div class="title" id="lbl-controls-title">对局操作（双方通用）</div>
+      <span id="lbl-controls-text"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动/跳跃/格挡 · <kbd>J</kbd> 轻攻击 · <kbd>K</kbd> 重攻击 · <kbd>L</kbd> 必杀</span>
+    </div>
+  </div>
+</div>
+
+<!-- 房间等待 -->
+<div class="overlay hidden" id="lobby">
+  <h1 id="lbl-room-created">房间已创建</h1><div class="sub" id="lbl-share-code">把这个码发给对方</div>
+  <div class="code" id="codeDisplay">----</div>
+  <div class="msg" id="lobbyMsg">等待对手加入...</div>
+  <div style="display:flex;gap:16px;align-items:center;justify-content:center;margin-top:10px;flex-wrap:wrap">
+    <div class="avatar-slot p1"><label id="lbl-you">你</label><div class="avatar-preview has-photo" id="lobbyMyAvatar"><span>＋</span></div></div>
+    <div style="font-size:28px;color:#333">VS</div>
+    <div class="avatar-slot p2"><label id="lbl-opponent">对手</label><div class="avatar-preview" id="lobbyOppAvatar"><span>?</span></div></div>
+  </div>
+  <button class="alt" id="copyBtn" id="lbl-copy">复制链接</button>
+</div>
+
+<!-- 结算 -->
+<div class="overlay hidden" id="endOverlay">
+  <div class="result-title" id="resultTitle">K.O.</div>
+  <div class="result-name" id="resultName"></div>
+  <div class="score-line" id="finalScore"></div>
+  <div class="history-box" id="historyBox"><div class="history-title" id="lbl-history-title">📜 对局记录</div><div id="historyList"></div></div>
+  <div class="demand-history-box" id="demandHistoryBox"><div class="history-title" style="color:#e67e22" id="lbl-demand-history-title">🔥 要求历史</div><div id="demandHistoryList"></div></div>
+  <div class="leaderboard-box" id="leaderboardBox"><div class="leaderboard-title" id="lbl-leaderboard-title">🏆 排行榜 TOP 10</div><div id="leaderboardList"></div></div>
+  <div id="demandWait" class="msg hidden" id="lbl-wait-demand">等待赢家的要求...</div>
+  <div id="demandInputSection" class="hidden" style="display:flex;flex-direction:column;align-items:center">
+    <div class="msg" style="color:#f39c12;font-weight:700;font-size:16px" id="lbl-you-won">你赢了！提出你的要求：</div>
+    <input id="demandInput" maxlength="100" placeholder="例如：下次视频约会你来选电影">
+    <button id="sendDemandBtn" id="lbl-send-demand">发送要求</button>
+  </div>
+  <div id="demandDisplay" class="demand-box hidden">
+    <div class="demand-label" id="lbl-demander-label">赢家的要求</div>
+    <div class="demand-text" id="demandText"></div>
+    <div class="demand-from" id="demandFrom"></div>
+  </div>
+  <button id="rematchBtn" style="margin-top:20px" id="lbl-rematch">再来一场</button>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = 960, H = 540, GROUND_Y = 470;
+  ctx.scale(2, 2); 
+
+  // ==========================================
+  // 🌍 多语言系统（核心需求：中国玩家中文，巴基斯坦玩家英文）
+  // ==========================================
+  let currentLang = 'zh'; // 默认中文
+  
+  const i18n = {
+    zh: {
+      title: '丝路对决',
+      sub: 'WangYongQi vs hana · 三局两胜 · 异地联机',
+      namePlaceholder: '你的名字',
+      myPhoto: '你的照片',
+      uploadHint: '点击上传 · 自动裁剪',
+      createRoom: '创建房间',
+      joinRoom: '加入房间',
+      codePlaceholder: '输入 4 位房间码',
+      controlsTitle: '对局操作（双方通用）',
+      controlsText: '移动/跳跃/格挡 · J 轻攻击 · K 重攻击 · L 必杀',
+      roomCreated: '房间已创建',
+      shareCode: '把这个码发给对方',
+      waiting: '等待对手加入...',
+      you: '你',
+      opponent: '对手',
+      copyLink: '复制链接',
+      copied: '已复制！',
+      historyTitle: '📜 对局记录',
+      demandHistoryTitle: '🔥 要求历史',
+      leaderboardTitle: '🏆 排行榜 TOP 10',
+      waitDemand: '等待赢家的要求...',
+      youWon: '你赢了！提出你的要求：',
+      demandPlaceholder: '例如：下次视频约会你来选电影',
+      sendDemand: '发送要求',
+      demanderLabel: '赢家的要求',
+      rematch: '再来一场',
+      round: '第',
+      roundEnd: '局',
+      win: '获胜',
+      draw: '平局',
+      fight: 'FIGHT!',
+      roundNum: '局数',
+      score: '比分'
+    },
+    en: {
+      title: 'Silk Road Showdown',
+      sub: 'WangYongQi vs hana · Best of 3 · Online',
+      namePlaceholder: 'Your Name',
+      myPhoto: 'Your Photo',
+      uploadHint: 'Click to upload · Auto crop',
+      createRoom: 'Create Room',
+      joinRoom: 'Join Room',
+      codePlaceholder: 'Enter 4-digit code',
+      controlsTitle: 'Controls (Both Players)',
+      controlsText: 'Move/Jump/Block · J Light · K Heavy · L Special',
+      roomCreated: 'Room Created',
+      shareCode: 'Send this code to your opponent',
+      waiting: 'Waiting for opponent...',
+      you: 'You',
+      opponent: 'Opponent',
+      copyLink: 'Copy Link',
+      copied: 'Copied!',
+      historyTitle: '📜 Round History',
+      demandHistoryTitle: '🔥 Demand History',
+      leaderboardTitle: '🏆 Leaderboard TOP 10',
+      waitDemand: 'Waiting for winner\'s demand...',
+      youWon: 'You won! Make a demand:',
+      demandPlaceholder: 'e.g., You pick the movie for our next date',
+      sendDemand: 'Send Demand',
+      demanderLabel: 'Winner\'s Demand',
+      rematch: 'Rematch',
+      round: 'Round',
+      roundEnd: '',
+      win: 'wins',
+      draw: 'Draw',
+      fight: 'FIGHT!',
+      roundNum: 'Round',
+      score: 'Score'
+    }
+  };
+
+  function t(key) { return i18n[currentLang][key] || i18n['zh'][key] || key; }
+  
+  function updateUILanguage() {
+    document.getElementById('lbl-title').textContent = t('title');
+    document.getElementById('lbl-sub').textContent = t('sub');
+    document.getElementById('nameInput').placeholder = t('namePlaceholder');
+    document.getElementById('lbl-my-photo').textContent = t('myPhoto');
+    document.getElementById('lbl-upload-hint').textContent = t('uploadHint');
+    document.getElementById('createBtn').textContent = t('createRoom');
+    document.getElementById('joinBtn').textContent = t('joinRoom');
+    document.getElementById('codeInput').placeholder = t('codePlaceholder');
+    document.getElementById('lbl-controls-title').textContent = t('controlsTitle');
+    document.getElementById('lbl-controls-text').innerHTML = `<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ${t('controlsText')}`;
+    document.getElementById('lbl-room-created').textContent = t('roomCreated');
+    document.getElementById('lbl-share-code').textContent = t('shareCode');
+    document.getElementById('lobbyMsg').textContent = t('waiting');
+    document.getElementById('lbl-you').textContent = t('you');
+    document.getElementById('lbl-opponent').textContent = t('opponent');
+    document.getElementById('copyBtn').textContent = t('copyLink');
+    document.getElementById('lbl-history-title').textContent = t('historyTitle');
+    document.getElementById('lbl-demand-history-title').textContent = t('demandHistoryTitle');
+    document.getElementById('lbl-leaderboard-title').textContent = t('leaderboardTitle');
+    document.getElementById('demandWait').textContent = t('waitDemand');
+    document.getElementById('lbl-you-won').textContent = t('youWon');
+    document.getElementById('demandInput').placeholder = t('demandPlaceholder');
+    document.getElementById('sendDemandBtn').textContent = t('sendDemand');
+    document.getElementById('lbl-demander-label').textContent = t('demanderLabel');
+    document.getElementById('rematchBtn').textContent = t('rematch');
+  }
+
+  // ==========================================
+  // 🔑 键位与配置
+  // ==========================================
+  const P1 = { left:'KeyA', right:'KeyD', jump:'KeyW', block:'KeyS', light:'KeyJ', heavy:'KeyK', special:'KeyL' };
+  const P2 = { left:'KeyA', right:'KeyD', jump:'KeyW', block:'KeyS', light:'KeyJ', heavy:'KeyK', special:'KeyL' };
+
+  const CHARA = { 
+    0: { name:'WangYongQi', color:'#2c3e50', color2:'#1a1a2e', accent:'#3498db', skin:'#e8c39e', hair:'#1a1a1a', hairStyle:'short', pants:'#1a1a2e' }, 
+    1: { name:'hana', color:'#8e44ad', color2:'#5b2c6f', accent:'#f39c12', skin:'#f0c8a0', hair:'#2a1a0a', hairStyle:'ponytail', pants:'#5b2c6f' } 
+  };
+
+  let ws = null, myId = -1, roomCode = '', myControls = P1, gameState = 'menu';
+  let serverState = null;
+  let myInput = { left:false, right:false, jump:false, block:false, light:false, heavy:false, special:false };
+  let lastSentInput = null, myPhotoData = null, myName = '', oppName = '';
+  const fighterImages = {};
+  let demandSent = false, soundEnabled = true, bgStarted = false, lastEffectCount = 0;
+  const ghostHp = { 0: 100, 1: 100 };
+  let victoryParticles = [];
+  
+  // 高级特效
+  let hitStopTimer = 0, screenShake = 0;
+  const afterimages = [], particles = [];
+
+  let audioCtx = null;
+  function ensureAudio() { if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {} } if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); return !!audioCtx; }
+  function beep(freq, dur, type, vol) { if (!soundEnabled || !ensureAudio()) return; const osc = audioCtx.createOscillator(), gain = audioCtx.createGain(); osc.type = type || 'square'; osc.frequency.value = freq; gain.gain.value = vol || 0.05; gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + dur); }
+  const SKILL_SOUND = { 0: { light: [520, 0.06, 'square', 0.05], heavy: [220, 0.14, 'sawtooth', 0.08], special: [80, 0.4, 'sawtooth', 0.14] }, 1: { light: [680, 0.06, 'triangle', 0.05], heavy: [300, 0.14, 'triangle', 0.08], special: [140, 0.4, 'triangle', 0.14] } };
+
+  let bgNodes = null;
+  function startBgMusic() {
+    if (bgStarted || !soundEnabled || !ensureAudio()) return; bgStarted = true;
+    const osc1 = audioCtx.createOscillator(), gain1 = audioCtx.createGain();
+    osc1.type = 'sine'; osc1.frequency.value = 55; gain1.gain.value = 0.025; osc1.connect(gain1); gain1.connect(audioCtx.destination); osc1.start();
+    const osc2 = audioCtx.createOscillator(), gain2 = audioCtx.createGain();
+    osc2.type = 'sine'; osc2.frequency.value = 110; gain2.gain.value = 0.008; osc2.connect(gain2); gain2.connect(audioCtx.destination); osc2.start();
+    bgNodes = { osc1, gain1, osc2, gain2 };
+    setInterval(() => { if (!soundEnabled || !audioCtx) return; const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.type = 'sine'; o.frequency.value = 60; g.gain.value = 0.04; g.gain.exponentialRampToValueAtTime(0.001, t + 0.3); o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 0.3); }, 2200);
+  }
+  function stopBgMusic() { if (bgNodes) { try { bgNodes.osc1.stop(); bgNodes.osc2.stop(); } catch(e) {} bgNodes = null; bgStarted = false; } }
+  document.getElementById('soundBtn').addEventListener('click', () => { soundEnabled = !soundEnabled; const btn = document.getElementById('soundBtn'); btn.textContent = soundEnabled ? '🔊' : '🔇'; btn.classList.toggle('off', !soundEnabled); if (soundEnabled) { ensureAudio(); startBgMusic(); } else { stopBgMusic(); } });
+
+  const keys = {};
+  window.addEventListener('keydown', e => { keys[e.code] = true; if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault(); });
+  window.addEventListener('keyup', e => { keys[e.code] = false; });
+  window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+
+  function compressImage(file, size, cb) { const reader = new FileReader(); reader.onload = e => { const img = new Image(); img.onload = () => { const c = document.createElement('canvas'); c.width = size; c.height = size; const cx = c.getContext('2d'); const s = Math.min(img.width, img.height); cx.drawImage(img, (img.width-s)/2, (img.height-s)/2, s, s, 0, 0, size, size); cb(c.toDataURL('image/jpeg', 0.82)); }; img.src = e.target.result; }; reader.readAsDataURL(file); }
+  function loadImage(dataUrl, cb) { const img = new Image(); img.onload = () => cb(img); img.src = dataUrl; }
+  document.getElementById('myPhotoInput').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; if (f.size > 5 * 1024 * 1024) { document.getElementById('errMsg').textContent = 'File too large / 文件太大'; return; } compressImage(f, 128, dataUrl => { myPhotoData = dataUrl; const prev = document.getElementById('myAvatarPreview'); prev.innerHTML = ''; const img = document.createElement('img'); img.src = dataUrl; prev.appendChild(img); prev.classList.add('has-photo'); }); });
+  function setAvatarImg(el, dataUrl) { el.innerHTML = ''; if (dataUrl) { const img = document.createElement('img'); img.src = dataUrl; el.appendChild(img); el.classList.add('has-photo'); } else { const sp = document.createElement('span'); sp.textContent = '?'; el.appendChild(sp); } }
+
+  function connect() { const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'; ws = new WebSocket(proto + '//' + location.host); ws.onopen = () => console.log('connected'); ws.onclose = () => console.log('disconnected'); ws.onerror = e => console.error('ws error', e); ws.onmessage = e => { let msg; try { msg = JSON.parse(e.data); } catch(err) { return; } handleMessage(msg); }; }
+
+  function handleMessage(msg) {
+    if (msg.type === 'created') { 
+      myId = msg.playerId; roomCode = msg.code; myControls = myId === 0 ? P1 : P2; 
+      // 🌍 根据身份自动切换语言
+      currentLang = myId === 0 ? 'zh' : 'en';
+      updateUILanguage();
+      document.getElementById('codeDisplay').textContent = msg.code; 
+      setAvatarImg(document.getElementById('lobbyMyAvatar'), myPhotoData); 
+      document.getElementById('menu').classList.add('hidden'); 
+      document.getElementById('lobby').classList.remove('hidden'); 
+      gameState = 'lobby'; 
+    }
+    else if (msg.type === 'joined') { 
+      myId = msg.playerId; roomCode = msg.code; myControls = myId === 0 ? P1 : P2; 
+      currentLang = myId === 0 ? 'zh' : 'en';
+      updateUILanguage();
+      document.getElementById('menu').classList.add('hidden'); 
+      document.getElementById('lobby').classList.add('hidden'); 
+      gameState = 'playing'; 
+    }
+    else if (msg.type === 'opponentInfo') { 
+      oppName = msg.name || ''; 
+      if (msg.photo) loadImage(msg.photo, img => { fighterImages[1 - myId] = img; }); 
+      if (myPhotoData) loadImage(myPhotoData, img => { fighterImages[myId] = img; }); 
+      setAvatarImg(document.getElementById('lobbyOppAvatar'), msg.photo); 
+      document.getElementById('lobbyMsg').textContent = (oppName || t('opponent')) + ' ' + (currentLang === 'zh' ? '已加入！准备开始...' : 'has joined! Preparing...'); 
+    }
+    else if (msg.type === 'playerJoined') { 
+      document.getElementById('lobbyMsg').textContent = msg.name + ' ' + (currentLang === 'zh' ? '已加入！准备开始...' : 'has joined! Preparing...'); 
+    }
+    else if (msg.type === 'opponentLeft') { 
+      gameState = 'menu'; 
+      document.getElementById('endOverlay').classList.add('hidden'); 
+      document.getElementById('lobby').classList.add('hidden'); 
+      document.getElementById('menu').classList.remove('hidden'); 
+      document.getElementById('errMsg').textContent = currentLang === 'zh' ? '对手已离开' : 'Opponent left'; 
+    }
+    else if (msg.type === 'error') { document.getElementById('errMsg').textContent = msg.message; }
+    else if (msg.type === 'demand') { showDemand(msg.demand); }
+    else if (msg.type === 'state') {
+      serverState = msg;
+      const effCount = (msg.effects || []).length;
+      if (effCount > lastEffectCount) {
+        hitStopTimer = 0.08; screenShake = 12; beep(180, 0.08, 'square', 0.04);
+        msg.effects.forEach(e => {
+          if (e.life > 0.25) {
+            for (let i = 0; i < 5; i++) {
+              particles.push({ x: e.x, y: e.y, vx: (Math.random() - 0.5) * 400, vy: (Math.random() - 0.5) * 400, life: 0.3 + Math.random() * 0.2, maxLife: 0.5, color: e.owner === 0 ? '#3498db' : '#f39c12', size: 2 + Math.random() * 4 });
+            }
+          }
+        });
+      }
+      lastEffectCount = effCount;
+
+      if (msg.fighters) { msg.fighters.forEach(f => { if (f.state === 'attack' || f.vx !== 0 || f.vy !== 0 || f.hitStun > 0) { if (Math.random() < 0.3) afterimages.push({ id: f.id, x: f.x, y: f.y, facing: f.facing, life: 0.2, maxLife: 0.2 }); } }); }
+      if (msg.fighters) { [0, 1].forEach(i => { const f = msg.fighters[i]; if (!f) return; if (f.hp < ghostHp[i]) ghostHp[i] = Math.max(f.hp, ghostHp[i] - 30 * (1/60)); else ghostHp[i] = f.hp; }); }
+      if (msg.roomState === 'matchEnd' && msg.matchWinner >= 0 && victoryParticles.length === 0) { const winner = msg.fighters[msg.matchWinner]; if (winner) { for (let i = 0; i < 100; i++) { victoryParticles.push({ x: winner.x, y: winner.y - 80, vx: (Math.random() - 0.5) * 600, vy: -300 - Math.random() * 500, life: 1.5 + Math.random(), maxLife: 2.5, color: msg.matchWinner === 0 ? '#3498db' : '#f39c12', size: 3 + Math.random() * 6 }); } } }
+      if (msg.roomState === 'countdown' || msg.roomState === 'fighting') { if (gameState === 'lobby') { document.getElementById('lobby').classList.add('hidden'); gameState = 'playing'; } if (gameState === 'ended') { document.getElementById('endOverlay').classList.add('hidden'); gameState = 'playing'; victoryParticles = []; } }
+      if (msg.roomState === 'matchEnd' && gameState !== 'ended') { gameState = 'ended'; showEndResult(msg); if (msg.matchWinner === myId) { beep(523, 0.15, 'sine', 0.1); setTimeout(() => beep(659, 0.15, 'sine', 0.1), 140); setTimeout(() => beep(784, 0.3, 'sine', 0.12), 280); } else if (msg.matchWinner >= 0) { beep(300, 0.2, 'sawtooth', 0.08); setTimeout(() => beep(200, 0.4, 'sawtooth', 0.08), 180); } }
+    }
+  }
+
+  function showEndResult(state) {
+    const wins = state.wins || [0,0]; const winnerId = state.matchWinner; let title, name, color;
+    if (winnerId === -1) { title='DRAW'; name=t('draw'); color='#aaa'; } else { const wName = state.fighters[winnerId]?.name || 'Winner'; title='VICTORY'; name = wName + ' ' + t('win'); color = winnerId === 0 ? '#ff4b4b' : '#2ecc71'; }
+    document.getElementById('resultTitle').textContent = title; document.getElementById('resultTitle').style.color = color; document.getElementById('resultName').textContent = name;
+    document.getElementById('finalScore').innerHTML = `<span class="s0">${wins[0]}</span><span class="colon"> : </span><span class="s1">${wins[1]}</span>`;
+    const list = document.getElementById('historyList'); list.innerHTML = '';
+    (state.roundHistory || []).forEach(r => { const row = document.createElement('div'); row.className = 'history-row'; const wCls = r.winnerId === 0 ? 'p0' : r.winnerId === 1 ? 'p1' : 'draw'; row.innerHTML = `<div class="history-round">${t('round')}${r.round}</div><div class="history-winner ${wCls}">${r.winnerName}</div><div class="history-detail">${r.winnerHp} - ${r.loserHp} · ${r.duration}s</div>`; list.appendChild(row); });
+    const dhList = document.getElementById('demandHistoryList'); dhList.innerHTML = ''; const dh = state.demandHistory || [];
+    if (dh.length === 0) { dhList.innerHTML = `<div class="dh-empty">${currentLang === 'zh' ? '还没有要求记录' : 'No demands yet'}</div>`; } else { dh.slice().reverse().forEach((d) => { const item = document.createElement('div'); item.className = 'demand-history-item'; const date = new Date(d.time); const timeStr = date.getMonth()+1 + '/' + date.getDate() + ' ' + String(date.getHours()).padStart(2,'0') + ':' + String(date.getMinutes()).padStart(2,'0'); item.innerHTML = `<div class="dh-head"><span>${d.from} · ${d.score[0]}:${d.score[1]}</span><span>${timeStr}</span></div><div class="dh-text">「${d.text}」</div>`; dhList.appendChild(item); }); }
+    const lbList = document.getElementById('leaderboardList'); lbList.innerHTML = ''; const lb = state.leaderboard || [];
+    if (lb.length === 0) { lbList.innerHTML = `<div class="lb-empty">${currentLang === 'zh' ? '还没有战绩' : 'No records yet'}</div>`; } else { lb.forEach((entry, i) => { const row = document.createElement('div'); row.className = 'lb-row'; let rankCls = ''; if (i === 0) rankCls = 'gold'; else if (i === 1) rankCls = 'silver'; else if (i === 2) rankCls = 'bronze'; row.innerHTML = `<div class="lb-rank ${rankCls}">#${i + 1}</div><div class="lb-name"><span class="win">${entry.winner}</span> ${currentLang === 'zh' ? '战胜' : 'beat'} ${entry.loser}</div><div class="lb-score">${entry.score[0]}:${entry.score[1]}</div>`; lbList.appendChild(row); }); }
+    demandSent = false; document.getElementById('demandDisplay').classList.add('hidden'); document.getElementById('demandInputSection').classList.add('hidden'); document.getElementById('demandWait').classList.add('hidden');
+    const iWon = (winnerId === myId) || winnerId === -1;
+    if (state.demand) { showDemand(state.demand); } else if (iWon) { document.getElementById('demandInputSection').classList.remove('hidden'); } else { document.getElementById('demandWait').classList.remove('hidden'); }
+    document.getElementById('endOverlay').classList.remove('hidden');
+  }
+
+  function showDemand(demand) { if (!demand) return; document.getElementById('demandInputSection').classList.add('hidden'); document.getElementById('demandWait').classList.add('hidden'); const box = document.getElementById('demandDisplay'); box.classList.remove('hidden'); document.getElementById('demandText').textContent = demand.text || '(Empty)'; document.getElementById('demandFrom').textContent = '— ' + (demand.from || 'Winner'); }
+  document.getElementById('sendDemandBtn').addEventListener('click', () => { if (demandSent) return; const txt = document.getElementById('demandInput').value.trim(); if (!txt) { document.getElementById('errMsg').textContent = 'Please enter a demand'; return; } demandSent = true; if (ws && ws.readyState === 1) { ws.send(JSON.stringify({ type: 'demand', text: txt })); } showDemand({ text: txt, from: myName || t('you') }); beep(660, 0.15, 'sine', 0.08); setTimeout(() => beep(880, 0.2, 'sine', 0.08), 120); });
+
+  // ==========================================
+  // 🎨 高清绘图与特效
+  // ==========================================
+  function drawBackground() {
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#0a0612'); g.addColorStop(.5,'#1a0f2e'); g.addColorStop(1,'#2a1a1a');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    ctx.save(); ctx.shadowColor = 'rgba(200,180,255,0.8)'; ctx.shadowBlur = 80; ctx.fillStyle = 'rgba(240,230,255,0.95)'; ctx.beginPath(); ctx.arc(800,90,45,0,Math.PI*2); ctx.fill(); ctx.restore();
+    const mg = ctx.createLinearGradient(0, 250, 0, 470); mg.addColorStop(0, '#120a1a'); mg.addColorStop(1, '#050308'); ctx.fillStyle = mg;
+    ctx.beginPath(); ctx.moveTo(0,400); ctx.lineTo(100,320); ctx.lineTo(200,360); ctx.lineTo(340,280); ctx.lineTo(480,350); ctx.lineTo(620,300); ctx.lineTo(760,340); ctx.lineTo(880,290); ctx.lineTo(960,330); ctx.lineTo(960,470); ctx.lineTo(0,470); ctx.closePath(); ctx.fill();
+    const gg = ctx.createLinearGradient(0,GROUND_Y-20,0,H); gg.addColorStop(0,'#1a1210'); gg.addColorStop(1,'#050308'); ctx.fillStyle = gg; ctx.fillRect(0,GROUND_Y-10,W,H-GROUND_Y+10);
+    ctx.strokeStyle = 'rgba(255,75,75,0.2)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(W, GROUND_Y); ctx.stroke();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    if (w < 2 * r) r = w / 2; if (h < 2 * r) r = h / 2;
+    ctx.beginPath(); ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+
+  function drawFighter(f, isAfterimage) {
+    const cfg = CHARA[f.id]; const color = cfg.color, color2 = cfg.color2, accent = cfg.accent, skin = cfg.skin, hair = cfg.hair;
+    let danceY = 0; 
+    if (!isAfterimage && serverState && serverState.roomState === 'matchEnd' && serverState.victoryAnim > 0 && serverState.matchWinner === f.id) danceY = -Math.abs(Math.sin(Date.now() / 180)) * 20;
+    let specialScale = 1; 
+    if (!isAfterimage && f.state === 'attack' && f.attackType === 'special') { const t = f.attackElapsed, total = f.attackStartup + f.attackActive, prog = Math.min(1, t / Math.max(0.01, total)); specialScale = 1 + Math.sin(prog * Math.PI) * 0.3; }
+    if (!isAfterimage) { ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.ellipse(f.x, GROUND_Y + 2, 35, 8, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
+    const flash = !isAfterimage && f.hitFlash > 0 && Math.floor(f.hitFlash*40)%2===0; const crouch = !isAfterimage && f.blocking && f.onGround ? .78 : 1; const breathe = (!isAfterimage && f.state !== 'attack') ? Math.sin(Date.now() / 200) * 2 : 0;
+    ctx.save(); if (isAfterimage) ctx.globalAlpha = 0.15; ctx.translate(f.x, f.y + danceY + breathe); ctx.scale(f.facing * specialScale, crouch * specialScale);
+    const c1 = flash ? '#fff' : color, c2 = flash ? '#fff' : color2, sk = flash ? '#fff' : skin, hr = flash ? '#fff' : hair, pantsC = flash ? '#fff' : cfg.pants;
+    ctx.fillStyle = pantsC; roundRect(ctx, -17, -50, 14, 40, 4); ctx.fill(); roundRect(ctx, 3, -50, 14, 40, 4); ctx.fill();
+    ctx.fillStyle = '#111'; roundRect(ctx, -19, -12, 18, 12, 4); ctx.fill(); roundRect(ctx, 1, -12, 18, 12, 4); ctx.fill();
+    const bodyGrad = ctx.createLinearGradient(-20, -92, 20, -48); bodyGrad.addColorStop(0, c1); bodyGrad.addColorStop(1, c2); ctx.fillStyle = flash ? '#fff' : bodyGrad; roundRect(ctx, -20, -92, 40, 46, 8); ctx.fill();
+    ctx.fillStyle = accent; roundRect(ctx, -20, -58, 40, 6, 2); ctx.fill(); ctx.beginPath(); ctx.arc(0, -76, 6, 0, Math.PI*2); ctx.fill();
+    if (!isAfterimage && f.state === 'attack') { const t = f.attackElapsed, total = f.attackStartup + f.attackActive, prog = Math.min(1, t / Math.max(0.01, total)), ext = Math.sin(prog * Math.PI) * 45; ctx.fillStyle = c1; roundRect(ctx, -35, -88, 18, 14, 6); ctx.fill(); roundRect(ctx, 15, -86, 20 + ext, 14, 6); ctx.fill(); ctx.fillStyle = sk; ctx.beginPath(); ctx.arc(35 + ext, -80, 9, 0, Math.PI*2); ctx.fill(); if (ext > 20) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.shadowColor = accent; ctx.shadowBlur = 20; ctx.strokeStyle = accent; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, -80, 50 + ext, -Math.PI/4, Math.PI/4); ctx.stroke(); ctx.restore(); } }
+    else if (!isAfterimage) { ctx.fillStyle = c1; roundRect(ctx, -34, -88, 15, 38, 6); ctx.fill(); roundRect(ctx, 19, -88, 15, 38, 6); ctx.fill(); ctx.fillStyle = sk; ctx.beginPath(); ctx.arc(-27, -52, 7, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(27, -52, 7, 0, Math.PI*2); ctx.fill(); }
+    if (cfg.hairStyle === 'ponytail' && (!fighterImages[f.id] || isAfterimage)) { ctx.fillStyle = hr; ctx.beginPath(); ctx.moveTo(-12, -120); ctx.quadraticCurveTo(-45, -95, -35, -40); ctx.quadraticCurveTo(-25, -50, -16, -100); ctx.closePath(); ctx.fill(); }
+    const img = fighterImages[f.id];
+    if (img && !isAfterimage) { ctx.save(); ctx.beginPath(); ctx.arc(0, -108, 20, 0, Math.PI*2); ctx.closePath(); ctx.clip(); ctx.drawImage(img, -20, -128, 40, 40); ctx.restore(); ctx.strokeStyle = accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, -108, 20, 0, Math.PI*2); ctx.stroke(); ctx.fillStyle = hr; if (cfg.hairStyle === 'ponytail') { ctx.beginPath(); ctx.arc(0, -112, 20, Math.PI*1.1, Math.PI*1.9); ctx.fill(); } else { ctx.beginPath(); ctx.arc(0, -114, 20, Math.PI*1.15, Math.PI*1.85); ctx.fill(); } }
+    else { ctx.fillStyle = sk; roundRect(ctx, -6, -90, 12, 10, 3); ctx.fill(); ctx.fillStyle = sk; ctx.beginPath(); ctx.arc(0, -108, 17, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = hr; if (cfg.hairStyle === 'ponytail') { ctx.beginPath(); ctx.arc(0, -112, 18, Math.PI*1.05, Math.PI*1.95); ctx.fill(); roundRect(ctx, -18, -116, 36, 12, 4); ctx.fill(); } else { ctx.beginPath(); ctx.arc(0, -112, 18, Math.PI, Math.PI*2); ctx.fill(); roundRect(ctx, -18, -112, 36, 8, 4); ctx.fill(); } ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.arc(6, -108, 2.5, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(-2, -108, 2.5, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(6.5, -108.5, 1, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(-1.5, -108.5, 1, 0, Math.PI*2); ctx.fill(); if (cfg.hairStyle === 'ponytail') { ctx.fillStyle = 'rgba(200,60,80,.5)'; ctx.beginPath(); ctx.arc(5, -102, 2.5, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(-3, -102, 2.5, 0, Math.PI*2); ctx.fill(); } }
+    ctx.restore();
+    if (isAfterimage) return;
+    if (f.blocking) { ctx.save(); const pulse = 0.6 + 0.4 * Math.sin(Date.now()/100); ctx.strokeStyle = `rgba(100,200,255,${pulse})`; ctx.lineWidth = 4; ctx.beginPath(); if (f.facing > 0) ctx.arc(f.x, f.y - 55, 62, -Math.PI/2, Math.PI/2); else ctx.arc(f.x, f.y - 55, 62, Math.PI/2, Math.PI*1.5); ctx.stroke(); ctx.fillStyle = `rgba(100,200,255,0.1)`; ctx.fill(); ctx.restore(); }
+    if (f.comboHits >= 2 && f.comboResetTimer > 0) { ctx.save(); const a = Math.min(1, f.comboResetTimer / 1.0); ctx.globalAlpha = a; ctx.font = 'bold 28px "Segoe UI",sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = f.comboHits >= 4 ? '#ff4444' : f.comboHits >= 3 ? '#ff8800' : '#ffdd44'; ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 25; ctx.fillText(f.comboHits + ' HIT', f.x, f.y - 145); ctx.restore(); }
+    ctx.save(); ctx.font = 'bold 14px "Segoe UI",sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = f.id === myId ? '#ffdd44' : 'rgba(255,255,255,.9)'; ctx.shadowColor = 'rgba(0,0,0,.9)'; ctx.shadowBlur = 6; ctx.fillText(f.name + (f.id === myId ? (currentLang === 'zh' ? ' (你)' : ' (You)') : ''), f.x, f.y + 32); ctx.restore();
+  }
+
+  function drawHealthBar(x, y, w, h, hp, energy, color, mirror, playerId) {
+    ctx.fillStyle = 'rgba(0,0,0,.8)'; roundRect(ctx, x-2, y-2, w+4, h+4, 6); ctx.fill(); ctx.fillStyle = '#1a1a1a'; roundRect(ctx, x, y, w, h, 4); ctx.fill();
+    const ghp = ghostHp[playerId] ?? hp; if (ghp > hp) { const gw = (ghp / 100) * w; ctx.fillStyle = 'rgba(255,80,80,0.6)'; if (mirror) roundRect(ctx, x+w-gw, y, gw, h, 4); else roundRect(ctx, x, y, gw, h, 4); ctx.fill(); }
+    const hpW = Math.max(0, (hp/100)*w); const hpGrad = ctx.createLinearGradient(0, y, 0, y+h); hpGrad.addColorStop(0, color); hpGrad.addColorStop(1, shadeColor(color, -50)); ctx.fillStyle = hpGrad; if (mirror) roundRect(ctx, x+w-hpW, y, hpW, h, 4); else roundRect(ctx, x, y, hpW, h, 4); ctx.fill();
+    if (hp < 30 && hp > 0) { const a = 0.4 + 0.4 * Math.sin(Date.now() / 100); ctx.fillStyle = `rgba(255,255,255,${a})`; if (mirror) roundRect(ctx, x+w-hpW, y, hpW, h, 4); else roundRect(ctx, x, y, hpW, h, 4); ctx.fill(); }
+    const ey = y+h+6; ctx.fillStyle = 'rgba(0,0,0,.7)'; roundRect(ctx, x-2, ey-2, w+4, 14, 6); ctx.fill(); ctx.fillStyle = '#111'; roundRect(ctx, x, ey, w, 10, 4); ctx.fill(); const eW = (energy/100)*w; const eGrad = ctx.createLinearGradient(0, ey, 0, ey+10); eGrad.addColorStop(0, energy >= 100 ? '#fff8b0' : '#f39c12'); eGrad.addColorStop(1, energy >= 100 ? '#ffcc00' : '#8a5a00'); ctx.fillStyle = eGrad; if (mirror) roundRect(ctx, x+w-eW, ey, eW, 10, 4); else roundRect(ctx, x, ey, eW, 10, 4); ctx.fill();
+    if (energy >= 100) { const a = .5 + .5*Math.sin(Date.now()/80); ctx.strokeStyle = `rgba(255,230,0,${a})`; ctx.lineWidth = 3; roundRect(ctx, x, ey, w, 10, 4); ctx.stroke(); }
+  }
+
+  function shadeColor(hex, percent) {
+    const num = parseInt(hex.slice(1), 16);
+    const r = Math.max(0, Math.min(255, (num >> 16) + percent)); const g = Math.max(0, Math.min(255, ((num >> 8) & 0xff) + percent)); const b = Math.max(0, Math.min(255, (num & 0xff) + percent));
+    return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+  }
+
+  function render() {
+    ctx.save();
+    if (screenShake > 0) { ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake); screenShake *= 0.85; if (screenShake < 0.5) screenShake = 0; }
+    drawBackground();
+    afterimages.forEach(ai => { if (serverState && serverState.fighters) { const f = serverState.fighters.find(x => x.id === ai.id); if (f) drawFighter({ ...f, x: ai.x, y: ai.y, facing: ai.facing }, true); } });
+    if (serverState) {
+      const hasSpecial = serverState.fighters.some(f => f.state === 'attack' && f.attackType === 'special' && f.attackElapsed < f.attackStartup + f.attackActive); if (hasSpecial) { const flash = 0.15 + 0.15 * Math.sin(Date.now() / 30); ctx.fillStyle = `rgba(255,220,100,${flash * 0.4})`; ctx.fillRect(0, 0, W, H); }
+      const fighters = serverState.fighters.slice().sort((a,b) => a.y - b.y); fighters.forEach(f => drawFighter(f, false));
+      particles.forEach(p => { ctx.globalAlpha = Math.max(0, p.life / p.maxLife); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = p.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 0.03, p.y - p.vy * 0.03); ctx.stroke(); }); ctx.globalAlpha = 1;
+      victoryParticles.forEach(p => { const a = Math.max(0, p.life / p.maxLife); ctx.globalAlpha = a; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = p.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 0.02, p.y - p.vy * 0.02); ctx.stroke(); }); ctx.globalAlpha = 1;
+      const f0 = serverState.fighters[0], f1 = serverState.fighters[1];
+      if (f0) drawHealthBar(30, 30, 380, 22, f0.hp, f0.energy, '#ff4b4b', false, 0);
+      if (f1) drawHealthBar(W-30-380, 30, 380, 22, f1.hp, f1.energy, '#2ecc71', true, 1);
+      ctx.save(); ctx.font = 'bold 38px "Courier New",monospace'; ctx.textAlign = 'center'; ctx.fillStyle = serverState.time < 10 ? '#ff4444' : '#fff'; ctx.shadowColor = 'rgba(0,0,0,.9)'; ctx.shadowBlur = 10; ctx.fillText(Math.ceil(serverState.time), W/2, 52); ctx.restore();
+      ctx.save(); ctx.font = 'bold 12px "Segoe UI",sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#666'; ctx.fillText(t('roundNum') + ' ' + (serverState.roundNum || 1) + ' / 3', W/2, 72); ctx.restore();
+      const wins = serverState.wins || [0,0]; ctx.save(); ctx.font = 'bold 20px "Courier New",monospace'; ctx.textAlign = 'center'; ctx.shadowColor = 'rgba(0,0,0,.9)'; ctx.shadowBlur = 8; ctx.fillStyle = '#ff4b4b'; ctx.fillText(wins[0], W/2 - 30, 96); ctx.fillStyle = '#333'; ctx.fillText(':', W/2, 96); ctx.fillStyle = '#2ecc71'; ctx.fillText(wins[1], W/2 + 30, 96); ctx.restore();
+      ctx.save(); ctx.font = 'bold 15px "Segoe UI",sans-serif'; if (f0) { ctx.fillStyle = '#ff4b4b'; ctx.textAlign = 'left'; ctx.fillText(f0.name, 30, 82); } if (f1) { ctx.fillStyle = '#2ecc71'; ctx.textAlign = 'right'; ctx.fillText(f1.name, W-30, 82); } ctx.restore();
+      [f0, f1].forEach((f, i) => { if (f && f.energy >= 100) { const a = 0.6 + 0.4 * Math.sin(Date.now()/100); ctx.save(); ctx.font = 'bold 14px "Segoe UI",sans-serif'; ctx.textAlign = i === 0 ? 'left' : 'right'; ctx.fillStyle = `rgba(255,220,0,${a})`; ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 15; ctx.fillText((currentLang === 'zh' ? '必杀就绪! ' : 'Special Ready! ') + 'L', i === 0 ? 30 : W-30, 102); ctx.restore(); } });
+      if (serverState.roomState === 'countdown') { ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(0,0,W,H); ctx.font = 'bold 140px "Segoe UI",sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.shadowColor = '#ff4b4b'; ctx.shadowBlur = 40; const n = Math.ceil(serverState.countdown); ctx.fillText(n > 0 ? String(n) : t('fight'), W/2, H/2 + 50); }
+      if (serverState.roomState === 'roundEnd' && serverState.lastRoundResult) { ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(0,0,W,H); const r = serverState.lastRoundResult; ctx.textAlign = 'center'; ctx.font = 'bold 48px "Segoe UI",sans-serif'; ctx.fillStyle = r.winnerId === 0 ? '#ff4b4b' : r.winnerId === 1 ? '#2ecc71' : '#aaa'; ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 30; ctx.fillText(t('round') + r.round + ' · ' + r.winnerName + ' ' + t('win'), W/2, H/2 - 30); ctx.font = '22px "Segoe UI",sans-serif'; ctx.fillStyle = '#ccc'; ctx.shadowBlur = 0; ctx.fillText((currentLang === 'zh' ? '下一局 ' : 'Next round in ') + Math.ceil(serverState.roundEndTimer || 0) + (currentLang === 'zh' ? ' 秒后开始' : 's'), W/2, H/2 + 30); }
+    } else { ctx.fillStyle = '#444'; ctx.font = '24px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(currentLang === 'zh' ? '等待连接...' : 'Connecting...', W/2, H/2); }
+    ctx.restore();
+  }
+
+  function loop() { 
+    if (hitStopTimer > 0) { hitStopTimer -= 1/60; requestAnimationFrame(loop); return; }
+    for (let i = afterimages.length - 1; i >= 0; i--) { afterimages[i].life -= 1/60; if (afterimages[i].life <= 0) afterimages.splice(i, 1); }
+    for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.life -= 1/60; if (p.life <= 0) { particles.splice(i, 1); continue; } p.vy += 800 * (1/60); p.x += p.vx * (1/60); p.y += p.vy * (1/60); p.vx *= 0.95; }
+    
+    if (gameState === 'playing') {
+      const c = myControls;
+      myInput = { left: !!keys[c.left], right: !!keys[c.right], jump: !!keys[c.jump], block: !!keys[c.block], light: !!keys[c.light], heavy: !!keys[c.heavy], special: !!keys[c.special] };
+      if (myInput.light && !lastSentInput?.includes('"light":true')) { const s = SKILL_SOUND[myId]?.light; if (s) beep(s[0], s[1], s[2], s[3]); }
+      if (myInput.heavy && !lastSentInput?.includes('"heavy":true')) { const s = SKILL_SOUND[myId]?.heavy; if (s) beep(s[0], s[1], s[2], s[3]); }
+      if (myInput.special && !lastSentInput?.includes('"special":true')) { const s = SKILL_SOUND[myId]?.special; if (s) beep(s[0], s[1], s[2], s[3]); }
+      const cur = JSON.stringify(myInput);
+      if (cur !== lastSentInput) { lastSentInput = cur; if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'input', input: myInput })); }
+    }
+    render(); requestAnimationFrame(loop); 
+  }
+
+  document.getElementById('createBtn').onclick = () => { const name = document.getElementById('nameInput').value.trim() || 'WangYongQi'; myName = name; if (!ws || ws.readyState !== 1) { document.getElementById('errMsg').textContent = 'Connecting...'; return; } document.getElementById('errMsg').textContent = ''; ws.send(JSON.stringify({ type: 'create', name, photo: myPhotoData })); ensureAudio(); startBgMusic(); };
+  document.getElementById('joinBtn').onclick = () => { const name = document.getElementById('nameInput').value.trim() || 'hana'; myName = name; const code = document.getElementById('codeInput').value.trim().toUpperCase(); if (!code) { document.getElementById('errMsg').textContent = 'Please enter room code'; return; } if (!ws || ws.readyState !== 1) { document.getElementById('errMsg').textContent = 'Connecting...'; return; } document.getElementById('errMsg').textContent = ''; ws.send(JSON.stringify({ type: 'join', name, code, photo: myPhotoData })); ensureAudio(); startBgMusic(); };
+  document.getElementById('copyBtn').onclick = () => { const url = location.origin + '?room=' + roomCode; navigator.clipboard.writeText(url).then(() => { document.getElementById('copyBtn').textContent = t('copied'); setTimeout(() => document.getElementById('copyBtn').textContent = t('copyLink'), 1500); }); };
+  document.getElementById('rematchBtn').onclick = () => { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'rematch' })); document.getElementById('endOverlay').classList.add('hidden'); gameState = 'playing'; ghostHp[0] = 100; ghostHp[1] = 100; victoryParticles = []; afterimages.length = 0; particles.length = 0; };
+
+  const params = new URLSearchParams(location.search); if (params.get('room')) { document.getElementById('codeInput').value = params.get('room').toUpperCase(); }
+  
+  // 初始语言判断：如果是通过链接直接加入，默认推测为英文；如果是创建房间，默认中文。
+  // 但真正切换在收到 'created' 或 'joined' 事件时。
+  // 这里给一个初始的渲染，避免空白
+  updateUILanguage();
+  
+  connect(); 
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
